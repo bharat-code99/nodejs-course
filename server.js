@@ -1,7 +1,16 @@
 import http from "http";
-const PORT = process.env.PORT;
+import fs from "fs/promises";
+import url from "url";
+import path from "path";
 
-const server = http.createServer((req, res) => {
+const PORT = process.env.PORT;
+const __filename = url.fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// res.writeHead(200, { "content-type": "application/json" });
+//         res.end(JSON.stringify({ page: "Home Page" }));
+
+const server = http.createServer(async (req, res) => {
   // res.setHeader("Content-Type", "text/html");
 
   console.log(req.url);
@@ -9,16 +18,19 @@ const server = http.createServer((req, res) => {
 
   try {
     if (req.method === "GET") {
+      let filepath;
       if (req.url === "/") {
-        res.writeHead(200, { "content-type": "application/json" });
-        res.end(JSON.stringify({ page: "Home Page" }));
+        filepath = path.join(__dirname, "public", "home.html");
       } else if (req.url === "/about") {
-        res.writeHead(200, { "content-type": "application/json" });
-        res.end(JSON.stringify({ page: "About Page" }));
+        filepath = path.join(__dirname, "public", "about.html");
       } else {
-        res.writeHead(404, { "content-type": "application/json" });
-        res.end(JSON.stringify({ page: "Not Found" }));
+        throw new Error("Not Found");
       }
+
+      const data = await fs.readFile(filepath);
+      res.setHeader("Content-Type", "text/html");
+      res.write(data);
+      res.end();
     } else {
       throw new Error("Method not allowed");
     }
