@@ -13,33 +13,93 @@ const logger = (req, res, next) => {
   next();
 };
 
+//json Middleware
+const jsonMiddleware = (req, res, next) => {
+  res.setHeader("Content-Type", "application/json");
+  next();
+};
+
+// Get Users Handler
+const getUsersHandler = (req, res) => {
+  res.write(JSON.stringify(users));
+  res.end();
+};
+
+const getUserByIdHandler = (req, res) => {
+  const id = req.url.split("/")[3];
+  const user = users.find((user) => user.id === parseInt(id));
+
+  if (user) {
+    res.write(JSON.stringify(user));
+  } else {
+    res.statusCode = 404;
+    res.write(JSON.stringify({ message: "User Not Found" }));
+  }
+  res.end();
+};
+
+// Create User Handler
+const createUserHandler = (req, res) => {
+  let body = "";
+
+  req.on("data", (chunk) => {
+    body += chunk.toString();
+  });
+  req.on("end", () => {
+    const newUser = JSON.parse(body);
+    users.push(newUser);
+    res.statusCode = 201;
+    res.write(JSON.stringify(newUser));
+    res.end();
+  });
+};
+
+// Not Found Handler
+const notFoundHandler = (req, res) => {
+  res.statusCode = 404;
+  res.write(JSON.stringify({ message: "Route Not Found" }));
+  res.end();
+};
+
 const server = createServer(async (req, res) => {
   logger(req, res, () => {
-    if (req.url === "/api/users" && req.method === "GET") {
-      res.setHeader("Content-Type", "application/json");
-      res.write(JSON.stringify(users));
-      res.end();
-    } else if (req.url.match(/\/api\/users\/([0-9]+)/) && req.method === "GET") {
-      const id = req.url.split("/")[3];
-      const user = users.find((user) => user.id === parseInt(id));
-
-      res.setHeader("Content-Type", "application/json");
-      if (user) {
-        res.write(JSON.stringify(user));
+    jsonMiddleware(req, res, () => {
+      if (req.url === "/api/users" && req.method === "GET") {
+        getUsersHandler(req, res);
+      } else if (req.url.match(/\/api\/users\/([0-9]+)/) && req.method === "GET") {
+        getUserByIdHandler(req, res);
+      } else if (req.url === "/api/users" && req.method === "POST") {
+        createUserHandler(req, res);
       } else {
-        res.statusCode = 404;
-        res.write(JSON.stringify({ message: "User Not Found" }));
+        notFoundHandler(req, res);
       }
-      res.end();
-    } else {
-      res.setHeader("Content-Type", "application/json");
-      res.statusCode = 404;
-      res.write(JSON.stringify({ message: "Route Not Found" }));
-      res.end();
-    }
+    });
   });
 });
 
 server.listen(PORT, () => {
   console.log(`Server started on port ${PORT}`);
 });
+
+// if (req.url === "/api/users" && req.method === "GET") {
+//       res.setHeader("Content-Type", "application/json");
+//       res.write(JSON.stringify(users));
+//       res.end();
+//     } else if (req.url.match(/\/api\/users\/([0-9]+)/) && req.method === "GET") {
+//       const id = req.url.split("/")[3];
+//       const user = users.find((user) => user.id === parseInt(id));
+
+//       res.setHeader("Content-Type", "application/json");
+//       if (user) {
+//         res.write(JSON.stringify(user));
+//       } else {
+//         res.statusCode = 404;
+//         res.write(JSON.stringify({ message: "User Not Found" }));
+//       }
+//       res.end();
+//     } else {
+//       res.setHeader("Content-Type", "application/json");
+//       res.statusCode = 404;
+//       res.write(JSON.stringify({ message: "Route Not Found" }));
+//       res.end();
+//     }
